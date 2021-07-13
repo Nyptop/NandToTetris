@@ -16,4 +16,21 @@ CHIP RAM64 {
 
     PARTS:
     // Put your code here:
+    // Load is 1 for only 1 RAM8 unit
+    DMux8Way (in=load,sel=address[0..2],a=s1,b=s2,c=s3,d=s4,e=s5,f=s6,g=s7,h=s8);
+    // Load is 1 for only 1 Register
+    // COMMENTED OUT DMux8Way (in=load,sel=address[4..6],a=s11,b=s22,c=s33,d=s44,e=s55,f=s66,g=s77,h=s88);
+
+    RAM8 (in=in,load=s1,address = address[3..5], out=R1);
+    RAM8 (in=in,load=s2,address = address[3..5], out=R2);
+    RAM8 (in=in,load=s3,address = address[3..5], out=R3);
+    RAM8 (in=in,load=s4,address = address[3..5], out=R4);
+    RAM8 (in=in,load=s5,address = address[3..5], out=R5);
+    RAM8 (in=in,load=s6,address = address[3..5], out=R6);
+    RAM8 (in=in,load=s7,address = address[3..5], out=R7);
+    RAM8 (in=in,load=s8,address = address[3..5], out=R8);
+
+    Mux8Way16 (a=R1,b=R2,c=R3,d=R4,e=R5,f=R6,g=R7,h=R8,sel=address[0..2],out=out);
+
+    
 }
