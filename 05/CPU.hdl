@@ -39,5 +39,60 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+
+    // Working from left to right to process the instruction
+
+    // Determining whether the instruction is of type A or C
+    And (a=true,b=instruction[15],isInstC);
+    Not (in=isInstC,out=isInstA);
+
+    // into Mux Before ALU
+    And (a=true,b=instruction[12],out=aBit);
+
+    // ALU control bits
+    And (a=instruction[11], b=true, out=zx);
+    And (a=instruction[10], b=true, out=nx);
+    And (a=instruction[9], b=true, out=zy);
+    And (a=instruction[8], b=true, out=ny);
+    And (a=instruction[7], b=true, out=f);
+    And (a=instruction[6], b=true, out=no);
+
+    // Destination bits
+    And (a=instruction[5],b=true,out=storeInA);
+    And (a=instruction[4],b=true,out=storeinD);
+    And (a=instruction[3],b=true,out=storeinM);
+
+    // Jump instructions
+    //null
+    Not (in=true,out = nojmp);
+    // JGT
+    Not (in=ng,out=JGT);
+    // JEQ
+    And (a=true,b=zr,out=JEQ);
+    // JGE
+    Not (in=ng,out=notNeg);
+    Or (a=zr,b=notNeg,out = JGE);
+    // JLT
+    And (a=true,b=ng,out=JLT);
+    // JNE
+    Not (in=zr,out=JNE);
+    // JLE
+    Or (a=ng,b=zr,out = JLE);
+    // JMP
+    Not (in=false,out=JMP);
+
+    // Selecting which Jump instruction with a Multiplexor
+    Mux8Way (a=nojmp,b=JGT,c=JEQ,d=JGE,e=JLT,f=JNE,g=JLE,h=JMP,sel = instruction[0..2],out=mayJump);
+    And (a=isInstC,b=mayJump,out=willJump);
+
+    // Wiring together
+    Mux16 (a=ALUoutput,b=instruction,sel=isInstA,out=intoAReg);
+    Register (in = intoAReg, load = storeInA, out = ARegOut,out[0..14]=addressM); // A Register
+    Register (in = ALUoutput, load = storeinD, out = DRegOut); // D Register
+    Mux16 (a = ARegOut, b = inM, sel = aBit, out = y);
+    ALU (x=DRegOut,y=y,zx=zx,nx=nx,zy=zy,ny=ny,f=f,no=no,out=ALUoutput,zr=zr,ng=ng);
+    And16 (a=true,b=ALUoutput,out=outM);
+    And16 (a=true,b=storeinM,out=writeM);
+    PC (in=ARegOut,load=willJump,inc=true,reset=reset,out[0..14]=pc);
+
 }
