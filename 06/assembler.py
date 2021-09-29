@@ -8,7 +8,7 @@ class Parser:
         self.current_command = self.f.readline()
 
     def hasMoreCommands(self):
-        return next(self.f) != None
+        return self.current_command != ""
 
     def advance(self):
         self.current_command = self.f.readline()
@@ -17,10 +17,10 @@ class Parser:
         #what is difference between L and C command?
         if self.current_command[0] == "@":
             return "A_COMMAND"
-        elif self.current_command[0] == '(':
-            return "L_COMMAND"
-        else:
+        elif ';' in self.current_command or '=' in self.current_command and '//' not in self.current_command:
             return "C_COMMAND"
+        else:
+            return "L_COMMAND"
 
     def symbol(self):
         if self.commandType() == "A_COMMAND":
@@ -46,15 +46,17 @@ class Parser:
         if self.commandType() == "C_COMMAND":
             if "=" in self.current_command:
                 output_str = ""
+                start_index = 0
                 for char in self.current_command:
-                    if char == "=":
-                        break
+                    if char != "=":
+                        start_index += 1
                     else:
-                        output_str += char
+                        output_str = self.current_command[start_index+1:-1]
+                        break
             else:
                 output_str = ""
                 for char in self.current_command:
-                    if char == "=":
+                    if char == ";":
                         break
                     else:
                         output_str += char
@@ -63,7 +65,7 @@ class Parser:
     
     def jump(self):
         if self.commandType() == "C_COMMAND":
-            if ";" in self.current_command():
+            if ";" in self.current_command:
                 output_str = ""
                 colon_encountered = False
                 for char in self.current_command:
@@ -71,11 +73,13 @@ class Parser:
                         output_str += char
                     elif char == ";":
                         colon_encountered = True
-                return output_str
+                return output_str[:-1]
         return ""
 
 def dest_code(string):
-    lookup = {"null":"000",
+    lookup = {
+    "":"000",
+    "null":"000",
     "M":"001",
     "D":"010",
     "MD":"011",
@@ -87,63 +91,77 @@ def dest_code(string):
 
 def comp_code(string):
     lookup = {
-    "0":"101010",
-    "1":"111111",
-    "-1":"111010",
-    "D":"001100",
-    "A":"110000",
-    "M":"110000",
-    "!D":"001101",
-    "!A":"110001",
-    "!M":"110001",
-    "-D":"001111",
-    "-A":"110011",
-    "-M":"110011",
-    "D+1":"011111",
-    "A+1":"110111",
-    "M+1":"110111",
-    "D-1":"001110",
-    "A-1":"110010",
-    "M-1":"110010",
-    "D+A":"000010",
-    "D+M":"000010",
-    "D-A":"010011",
-    "D-M":"010011",
-    "A-D":"000111",
-    "M-D":"000111",
-    "D&A":"000000",
-    "D&M":"000000",
-    "D|A":"010101",
-    "D|M":"010101",
+        '0': '0101010',
+        '1': '0111111',
+        '-1': '0111010',
+        'D': '0001100',
+        'A': '0110000',
+        '!D': '0001101',
+        '!A': '0110001',
+        '-D': '0001111',
+        '-A': '0110011',
+        'D+1': '0011111',
+        'A+1': '0110111',
+        'D-1': '0001110',
+        'A-1': '0110010',
+        'D+A': '0000010',
+        'D-A': '0010011',
+        'A-D': '0000111',
+        'D&A': '0000000',
+        'D|A': '0010101',
+        'M': '1110000',
+        '!M': '1110001',
+        '-M': '1110011',
+        'M+1': '1110111',
+        'M-1': '1110010',
+        'D+M': '1000010',
+        'D-M': '1010011',
+        'M-D': '1000111',
+        'D&M': '1000000',
+        'D|M': '1010101'
     }
     return lookup[string]
 
 def jump_code(string):
-    lookup = {"null":"000",
-    "JGT":"001",
-    "JEQ":"010",
-    "JGE":"011",
-    "JLT":"100",
-    "JNE":"101",
-    "JLE":"110",
-    "JMP":"111",}
+    lookup = {
+    "":"000",
+    "null":"000",
+    'JGT': '001',
+    'JEQ': '010',
+    'JGE': '011',
+    'JLT': '100',
+    'JNE': '101',
+    'JLE': '110',
+    'JMP': '111'}
     return lookup[string]
 
 def to_binary(string):
-    num = int(string)
+    num = f"{int(string[1:]):b}"
+    return num
 
 if __name__ == "__main__":
     file_address = sys.argv[1]
     p = Parser(file_address)
     output_filename = file_address[:file_address.index(".")]
     f = open(f"{output_filename}.HACK", "w")
+    counter = 0
     while p.hasMoreCommands():
-        if p.commandType == "C_COMMAND":
-            new_line = "0" + dest_code(p.dest()) + comp_code(p.comp()) + jump_code(p.jump()) 
-            f.write(new_line)
-        elif:
-            p.commandType == "A_COMMAND":
-            new_line = "1" + f"{p.current_command:b}"
+        counter += 1
+        print(counter)
+        print(p.current_command)
+        if p.commandType() == "C_COMMAND":
+            print(p.dest())
+            print(p.comp())
+            print(p.jump())
+            new_line = "111" + comp_code(p.comp()) +dest_code(p.dest()) + jump_code(p.jump()) +"\n"
+        elif p.commandType() == "A_COMMAND":
+            new_line = f"{to_binary(p.current_command)}" +"\n"
+            while len(new_line)<16:
+                new_line = "0"+new_line
+            new_line = "0"+new_line #adding the very first zero at the start
+        else:
+            new_line = ""
+        f.writelines(new_line)
         p.advance()
 
     f.close()
